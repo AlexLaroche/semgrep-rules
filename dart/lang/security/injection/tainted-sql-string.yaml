@@ -1,0 +1,54 @@
+rules:
+- id: tainted-sql-string
+  mode: taint
+  message: >-
+    Detected an SQL query whose string argument is built from data flowing
+    in from a function parameter (untrusted input). An attacker who
+    controls that input can inject SQL syntax (`'`, `--`, `;`) and rewrite
+    the query. Use the parameterized form by leaving `?` placeholders in
+    the SQL string and supplying the values via the `arguments` list,
+    which sqflite passes to SQLite as bound parameters.
+  languages: [dart]
+  severity: ERROR
+  metadata:
+    owasp:
+    - A01:2017 - Injection
+    - A03:2021 - Injection
+    - A03:2025 - Injection
+    cwe:
+    - 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command (''SQL Injection'')'
+    masvs:
+    - 'MSTG-PLATFORM-2: All inputs from external sources and the user are validated and if necessary sanitized.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - sqflite
+    - sqlite
+    references:
+    - https://owasp.org/www-community/attacks/SQL_Injection
+    - https://pub.dev/packages/sqflite
+    subcategory:
+    - vuln
+    likelihood: HIGH
+    impact: HIGH
+    confidence: HIGH
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) { ... }
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) async { ... }
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) async* { ... }
+    - focus-metavariable: $P
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $DB.rawQuery($SQL, ...)
+      - pattern: $DB.rawInsert($SQL, ...)
+      - pattern: $DB.rawUpdate($SQL, ...)
+      - pattern: $DB.rawDelete($SQL, ...)
+      - pattern: $DB.execute($SQL, ...)
+    - focus-metavariable: $SQL

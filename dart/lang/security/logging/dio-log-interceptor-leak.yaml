@@ -1,0 +1,47 @@
+rules:
+- id: dio-log-interceptor-leak
+  message: >-
+    Detected a Dio `LogInterceptor` configured to log request/response
+    bodies or headers. Dio writes interceptor output to the platform
+    log (`logcat` / Console), so any other process with log-read access
+    can recover credentials in the `Authorization` header, JWTs in the
+    body, session cookies, and PII. Either remove the interceptor in
+    release builds (`if (kDebugMode) dio.interceptors.add(...)`),
+    register a custom redacting interceptor, or use a structured logger
+    that never emits `Authorization` headers.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A09:2021 - Security Logging and Monitoring Failures
+    - A09:2025 - Logging Failures
+    cwe:
+    - 'CWE-532: Insertion of Sensitive Information into Log File'
+    masvs:
+    - 'MSTG-STORAGE-3: No sensitive data is written to application logs.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - dio
+    references:
+    - https://pub.dev/packages/dio
+    - https://api.flutter.dev/flutter/foundation/kDebugMode-constant.html
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: MEDIUM
+    confidence: HIGH
+  patterns:
+  - pattern-either:
+    - pattern: 'LogInterceptor(..., requestBody: true, ...)'
+    - pattern: 'LogInterceptor(..., responseBody: true, ...)'
+    - pattern: 'LogInterceptor(..., requestHeader: true, ...)'
+    - pattern: 'LogInterceptor(..., responseHeader: true, ...)'
+  # Suppress when guarded by `if (kDebugMode) { ... }` — release builds
+  # tree-shake the call away. This is the documented escape hatch in
+  # the rule's own message.
+  - pattern-not-inside: |
+      if (kDebugMode) {
+        ...
+      }

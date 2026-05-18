@@ -1,0 +1,44 @@
+rules:
+- id: webview-javascript-channel
+  message: >-
+    Detected a JavaScript channel being registered on a webview_flutter
+    WebView. This creates a JS-to-Dart bridge: any script running in
+    the WebView — including injected XSS payloads or attacker-controlled
+    pages loaded via `loadRequest` / `loadHtmlString` — can post
+    messages to your native callback and trigger whatever it does
+    (navigation, file access, token exfiltration). Restrict the WebView
+    to a strict allowlist of trusted origins, disable JavaScript
+    entirely if you don't need it, validate the channel message
+    contents before acting, or remove the channel and use postMessage
+    to a sandboxed iframe.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A03:2021 - Injection
+    - A03:2025 - Injection
+    cwe:
+    - 'CWE-749: Exposed Dangerous Method or Function'
+    - 'CWE-79: Improper Neutralization of Input During Web Page Generation (Cross-site Scripting)'
+    masvs:
+    - 'MSTG-PLATFORM-7: If native methods of the app are exposed to a WebView, verify that the WebView only renders JavaScript contained within the app package.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - webview
+    references:
+    - https://pub.dev/packages/webview_flutter
+    - https://developer.android.com/privacy-and-security/risks/insecure-webview
+    subcategory:
+    - audit
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: HIGH
+  pattern-either:
+  # webview_flutter v3+/v4 — controller.addJavaScriptChannel(...)
+  - pattern: $C.addJavaScriptChannel($NAME, ...)
+  # webview_flutter v4 — JavaScriptChannel constructor (uppercase 'S')
+  - pattern: JavaScriptChannel(...)
+  # webview_flutter v2 legacy — JavascriptChannel constructor (lowercase 's')
+  - pattern: JavascriptChannel(...)

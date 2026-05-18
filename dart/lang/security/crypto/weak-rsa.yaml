@@ -1,0 +1,35 @@
+rules:
+- id: weak-rsa
+  message: >-
+    RSA key with insufficient size detected (less than 2048 bits). NIST and
+    the IETF recommend a minimum modulus of 2048 bits for RSA keys generated
+    today, with 3072 bits or larger preferred for new systems. Smaller keys
+    are factorable by well-funded adversaries.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-326: Inadequate Encryption Strength'
+    masvs:
+    - 'MSTG-CRYPTO-5: The app uses keys of sufficient length.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    references:
+    - https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf
+    - https://pub.dev/packages/pointycastle
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: MEDIUM
+  patterns:
+  - pattern: RSAKeyGeneratorParameters($EXPONENT, $BITS, ...)
+  - metavariable-comparison:
+      metavariable: $BITS
+      comparison: $BITS < 2048

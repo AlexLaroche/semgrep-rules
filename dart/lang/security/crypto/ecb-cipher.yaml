@@ -1,0 +1,47 @@
+rules:
+- id: ecb-cipher
+  message: >-
+    Detected use of ECB (Electronic CodeBook) block cipher mode. ECB
+    encrypts each block independently, so identical plaintext blocks
+    produce identical ciphertext blocks — leaking patterns in the data
+    and breaking semantic security. Use an authenticated mode (GCM,
+    ChaCha20-Poly1305) or, at minimum, a chaining mode with a unique
+    IV per message (CBC, CTR).
+  languages: [dart]
+  severity: ERROR
+  metadata:
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    masvs:
+    - 'MSTG-CRYPTO-3: The app uses cryptographic primitives that are appropriate for the particular use-case, configured with parameters that adhere to industry best practices.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - pointycastle
+    references:
+    - https://owasp.org/Top10/A02_2021-Cryptographic_Failures
+    - https://pub.dev/packages/pointycastle
+    - https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_(ECB)
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: HIGH
+  pattern-either:
+  # pointycastle — direct ECB block cipher constructor
+  - pattern: ECBBlockCipher(...)
+  # pointycastle — registry lookup with /ECB/ in the algorithm string
+  - patterns:
+    - pattern-either:
+      - pattern: BlockCipher($ALGO)
+      - pattern: PaddedBlockCipher($ALGO)
+      - pattern: PaddedBlockCipherImpl($ALGO, ...)
+      - pattern: StreamCipher($ALGO)
+    - metavariable-regex:
+        metavariable: $ALGO
+        regex: (?i)^['\"][^'\"]*\/ECB(\/[^'\"]*)?['\"]$

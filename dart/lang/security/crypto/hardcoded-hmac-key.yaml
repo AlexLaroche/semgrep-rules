@@ -1,0 +1,52 @@
+rules:
+- id: hardcoded-hmac-key
+  message: >-
+    Detected an `Hmac` initialised with a hardcoded key (a literal
+    string passed via `.codeUnits` or `utf8.encode(...)`). Anyone with
+    read access to the source — current contributors, ex-employees,
+    anyone who recovers the key from a discarded device or decompiled
+    APK — can forge or verify HMAC tags. Load the secret from
+    `flutter_secure_storage`, an environment variable, or a remote
+    configuration channel and rotate it independently of releases.
+  languages: [dart]
+  severity: ERROR
+  metadata:
+    owasp:
+    - A02:2021 - Cryptographic Failures
+    - A07:2021 - Identification and Authentication Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-321: Use of Hard-coded Cryptographic Key'
+    - 'CWE-798: Use of Hard-coded Credentials'
+    masvs:
+    - 'MSTG-CRYPTO-1: The app does not rely on symmetric cryptography with hardcoded keys as a sole method of encryption.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - crypto
+    references:
+    - https://owasp.org/Top10/A02_2021-Cryptographic_Failures
+    - https://pub.dev/packages/crypto
+    - https://pub.dev/packages/flutter_secure_storage
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: HIGH
+  pattern-either:
+  - patterns:
+    - pattern: Hmac($H, $K.codeUnits)
+    - metavariable-regex:
+        metavariable: $K
+        regex: ^['\"][^'\"]+['\"]$
+  - patterns:
+    - pattern: Hmac($H, utf8.encode($K))
+    - metavariable-regex:
+        metavariable: $K
+        regex: ^['\"][^'\"]+['\"]$
+  - patterns:
+    - pattern: Hmac($H, $X.utf8.encode($K))
+    - metavariable-regex:
+        metavariable: $K
+        regex: ^['\"][^'\"]+['\"]$

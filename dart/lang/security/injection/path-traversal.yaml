@@ -1,0 +1,57 @@
+rules:
+- id: path-traversal
+  mode: taint
+  message: >-
+    Detected a `File`/`Directory`/`Link` constructed from a path that
+    flows in from a function parameter (untrusted input). An attacker
+    who supplies `..` segments can read or write files outside the
+    intended directory. Resolve the path with `package:path` and verify
+    it stays under an allow-listed root: `final norm =
+    p.canonicalize(p.join(safeRoot, userPath)); if
+    (!p.isWithin(safeRoot, norm)) reject();`.
+  languages: [dart]
+  severity: ERROR
+  metadata:
+    owasp:
+    - A05:2017 - Broken Access Control
+    - A01:2021 - Broken Access Control
+    - A01:2025 - Broken Access Control
+    cwe:
+    - 'CWE-22: Improper Limitation of a Pathname to a Restricted Directory (''Path Traversal'')'
+    masvs:
+    - 'MSTG-PLATFORM-2: All inputs from external sources and the user are validated and if necessary sanitized.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    references:
+    - https://owasp.org/www-community/attacks/Path_Traversal
+    - https://api.dart.dev/stable/dart-io/File-class.html
+    - https://pub.dev/packages/path
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: MEDIUM
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) { ... }
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) async { ... }
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) async* { ... }
+    - focus-metavariable: $P
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: File($PATH)
+      - pattern: File.fromUri($PATH)
+      - pattern: File.fromRawPath($PATH)
+      - pattern: Directory($PATH)
+      - pattern: Directory.fromUri($PATH)
+      - pattern: Directory.fromRawPath($PATH)
+      - pattern: Link($PATH)
+      - pattern: Link.fromUri($PATH)
+    - focus-metavariable: $PATH

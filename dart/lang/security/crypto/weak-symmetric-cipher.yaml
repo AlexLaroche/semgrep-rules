@@ -1,0 +1,53 @@
+rules:
+- id: weak-symmetric-cipher
+  message: >-
+    Detected use of a broken or weak symmetric cipher (DES, 3DES, RC2,
+    RC4, or Blowfish). DES has a 56-bit key and is brute-forceable in
+    hours on commodity hardware; 3DES and Blowfish have a 64-bit block
+    size and are vulnerable to Sweet32 birthday attacks on long-lived
+    sessions; RC2 and RC4 have known biases that allow practical
+    plaintext recovery. Use AES-GCM or ChaCha20-Poly1305 for
+    authenticated encryption.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    masvs:
+    - 'MSTG-CRYPTO-4: The app does not use cryptographic protocols or algorithms that are widely considered deprecated for security purposes.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - pointycastle
+    references:
+    - https://owasp.org/Top10/A02_2021-Cryptographic_Failures
+    - https://pub.dev/packages/pointycastle
+    - https://sweet32.info/
+    - https://datatracker.ietf.org/doc/html/rfc7465
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: HIGH
+  pattern-either:
+  # pointycastle — algorithm-specific engine class
+  - pattern: DESEngine()
+  - pattern: DESedeEngine()
+  - pattern: RC2Engine()
+  - pattern: RC4Engine()
+  - pattern: BlowfishEngine()
+  # pointycastle — registry lookup with weak algorithm string
+  # (with or without a mode/padding suffix)
+  - patterns:
+    - pattern-either:
+      - pattern: BlockCipher($ALGO)
+      - pattern: PaddedBlockCipher($ALGO)
+      - pattern: StreamCipher($ALGO)
+    - metavariable-regex:
+        metavariable: $ALGO
+        regex: (?i)^['\"](DES|DESede|3DES|TripleDES|RC2|RC4|Blowfish)([\/\-].*)?['\"]$

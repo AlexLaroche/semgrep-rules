@@ -1,0 +1,42 @@
+rules:
+- id: biometric-weak-config
+  message: >-
+    Detected a `local_auth` `AuthenticationOptions` with
+    `biometricOnly: false`. This lets the OS fall back to the device
+    PIN/passcode/pattern, which is a much weaker authentication signal
+    than a fingerprint or face scan and may be known to anyone who
+    shares the device. For privileged operations (key release, payment
+    confirmation, secret reveal) require `biometricOnly: true` and
+    handle the not-enrolled case explicitly.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A07:2021 - Identification and Authentication Failures
+    cwe:
+    - 'CWE-287: Improper Authentication'
+    masvs:
+    - 'MSTG-AUTH-8: Biometric authentication, if any, is not event-bound (i.e. using an API that simply returns "true" or "false"). Instead, it is based on unlocking the keychain/keystore.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - local_auth
+    references:
+    - https://pub.dev/packages/local_auth
+    - https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: MEDIUM
+    confidence: HIGH
+  # Semgrep's Dart frontend does not unify `const X(...)` with `X(...)`,
+  # a leading `...` does not match named-arg lists, and a trailing `...`
+  # after a named arg requires at least one more arg, so each combination
+  # (const/non-const × single/multi-arg) needs its own pattern.
+  # `biometricOnly` must appear as the first named arg.
+  pattern-either:
+  - pattern: 'AuthenticationOptions(biometricOnly: false)'
+  - pattern: 'AuthenticationOptions(biometricOnly: false, ...)'
+  - pattern: 'const AuthenticationOptions(biometricOnly: false)'
+  - pattern: 'const AuthenticationOptions(biometricOnly: false, ...)'

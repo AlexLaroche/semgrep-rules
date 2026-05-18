@@ -1,0 +1,45 @@
+rules:
+- id: unencrypted-shared-preferences
+  message: >-
+    Detected `shared_preferences` storing a value under a key whose name
+    suggests it is sensitive (token, password, secret, API key, JWT,
+    session, …). `SharedPreferences` is plaintext: on Android it is
+    backed by an unencrypted XML file on the device, and on rooted/
+    jailbroken devices or with `adb backup` the value is trivially
+    recoverable. Use `flutter_secure_storage` (Keystore / Keychain) for
+    credentials and tokens.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-312: Cleartext Storage of Sensitive Information'
+    - 'CWE-922: Insecure Storage of Sensitive Information'
+    masvs:
+    - 'MSTG-STORAGE-1: System credential storage facilities are used appropriately to store sensitive data, such as PII, user credentials or cryptographic keys.'
+    - 'MSTG-STORAGE-2: No sensitive data is stored outside of the app container or system credential storage facilities.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - shared_preferences
+    references:
+    - https://pub.dev/packages/shared_preferences
+    - https://pub.dev/packages/flutter_secure_storage
+    subcategory:
+    - audit
+    likelihood: MEDIUM
+    impact: MEDIUM
+    confidence: MEDIUM
+  patterns:
+  - pattern-either:
+    - pattern: $P.setString($KEY, ...)
+    - pattern: $P.setStringList($KEY, ...)
+    - pattern: $P.setInt($KEY, ...)
+    - pattern: $P.setDouble($KEY, ...)
+    - pattern: $P.setBool($KEY, ...)
+  - metavariable-regex:
+      metavariable: $KEY
+      regex: (?i)^['\"][^'\"]*(token|password|passwd|secret|api[-_]?key|bearer|jwt|session|credential|auth|refresh|access[-_]?key|private[-_]?key)[^'\"]*['\"]$

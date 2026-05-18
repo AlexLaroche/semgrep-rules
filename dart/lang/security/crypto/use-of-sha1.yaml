@@ -1,0 +1,43 @@
+rules:
+- id: use-of-sha1
+  message: >-
+    Detected SHA-1 hash algorithm which is considered insecure. SHA-1 is not
+    collision resistant and is therefore not suitable as a cryptographic
+    signature. Use SHA-256 or SHA-3 instead; for password hashing use a
+    purpose-built KDF such as Argon2 or PBKDF2.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-328: Use of Weak Hash'
+    masvs:
+    - 'MSTG-CRYPTO-4: The app does not use cryptographic protocols or algorithms that are widely considered deprecated for security purposes.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    references:
+    - https://owasp.org/Top10/A02_2021-Cryptographic_Failures
+    - https://pub.dev/packages/pointycastle
+    - https://pub.dev/packages/crypto
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: MEDIUM
+    confidence: HIGH
+  pattern-either:
+  # package:pointycastle — Digest factory with algorithm string
+  - patterns:
+    - pattern: Digest($ALGO)
+    - metavariable-regex:
+        metavariable: $ALGO
+        regex: (?i)^['\"]SHA-?1['\"]$
+  # package:pointycastle — algorithm-specific class
+  - pattern: SHA1Digest()
+  # package:crypto — top-level sha1 hasher (with or without import alias)
+  - pattern: sha1.convert(...)
+  - pattern: $X.sha1.convert(...)

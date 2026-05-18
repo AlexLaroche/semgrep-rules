@@ -1,0 +1,56 @@
+rules:
+- id: rsa-no-padding
+  message: >-
+    Detected use of `RSAEngine` (or `AsymmetricBlockCipher('RSA')`)
+    without a padding scheme. Textbook RSA is deterministic and
+    malleable: identical plaintexts produce identical ciphertexts,
+    short messages can be recovered by guess-and-encrypt, and an
+    attacker can multiply ciphertexts to forge related plaintexts.
+    Wrap the engine in `OAEPEncoding(RSAEngine())` (preferred — RFC 8017
+    OAEP with SHA-256) for new code, or `PKCS1Encoding(RSAEngine())`
+    only when interoperating with legacy systems.
+  languages: [dart]
+  severity: ERROR
+  metadata:
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-780: Use of RSA Algorithm without OAEP'
+    - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    masvs:
+    - 'MSTG-CRYPTO-3: The app uses cryptographic primitives that are appropriate for the particular use-case, configured with parameters that adhere to industry best practices.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - pointycastle
+    references:
+    - https://owasp.org/Top10/A02_2021-Cryptographic_Failures
+    - https://datatracker.ietf.org/doc/html/rfc8017
+    - https://pub.dev/packages/pointycastle
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: HIGH
+  pattern-either:
+  # Bare RSAEngine() construction not wrapped in a padding scheme.
+  # `pattern-not-inside` matches syntactic containment, so this catches
+  # the common inline idiom `final c = RSAEngine();` but does not
+  # suppress when the engine is assigned to a variable that is later
+  # passed to OAEPEncoding/PKCS1Encoding (rare in practice).
+  - patterns:
+    - pattern: RSAEngine()
+    - pattern-not-inside: OAEPEncoding(...)
+    - pattern-not-inside: PKCS1Encoding(...)
+  # Registry lookup where the algorithm string is exactly "RSA" — the
+  # pointycastle registry returns an unpadded engine in that case.
+  # "RSA/OAEP/..." and "RSA/PKCS1" are accepted via the explicit
+  # negative anchor in the regex.
+  - patterns:
+    - pattern: AsymmetricBlockCipher($ALGO)
+    - metavariable-regex:
+        metavariable: $ALGO
+        regex: (?i)^['"]RSA['"]$

@@ -1,0 +1,49 @@
+rules:
+- id: debug-print-leak
+  message: >-
+    Detected `print` / `debugPrint` of a variable or interpolated value
+    whose name suggests it carries sensitive data (token, password,
+    secret, JWT, session, …). Anything Flutter prints in release builds
+    lands in `logcat`/Console where any other app on the device or any
+    process with the appropriate entitlement can read it. Either remove
+    the log statement, gate it behind `if (kDebugMode) { … }`, or use
+    `developer.log` with a level filter and avoid passing credentials
+    into the message.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A09:2021 - Security Logging and Monitoring Failures
+    - A09:2025 - Logging Failures
+    cwe:
+    - 'CWE-532: Insertion of Sensitive Information into Log File'
+    masvs:
+    - 'MSTG-STORAGE-3: No sensitive data is written to application logs.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    references:
+    - https://api.flutter.dev/flutter/foundation/kDebugMode-constant.html
+    - https://api.flutter.dev/flutter/foundation/debugPrint.html
+    - https://api.dart.dev/stable/dart-developer/log.html
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: MEDIUM
+    confidence: MEDIUM
+  patterns:
+  - pattern-either:
+    - pattern: print($X)
+    - pattern: debugPrint($X, ...)
+  - metavariable-regex:
+      metavariable: $X
+      regex: (?i).*(token|password|passwd|secret|api[-_]?key|bearer|jwt|session|credential|refresh|access[-_]?key|private[-_]?key).*
+  # Suppress when guarded by `if (kDebugMode) { ... }` — the call is
+  # tree-shaken out of release builds (kDebugMode is a const that
+  # resolves to `false` in release), so the leak only happens during
+  # development. This is the escape hatch documented in the message.
+  - pattern-not-inside: |
+      if (kDebugMode) {
+        ...
+      }

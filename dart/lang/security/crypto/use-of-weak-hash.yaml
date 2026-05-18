@@ -1,0 +1,43 @@
+rules:
+- id: use-of-weak-hash
+  message: >-
+    Detected use of a broken or risky hash algorithm (MD2, MD4, RIPEMD-128,
+    or RIPEMD-160). These produce digests that are short or vulnerable to
+    pre-image / collision attacks, making them unsuitable for cryptographic
+    signatures, certificate validation, or password hashing. Use SHA-256,
+    SHA-3, or a dedicated password KDF (Argon2, PBKDF2) instead.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    - 'CWE-328: Use of Weak Hash'
+    masvs:
+    - 'MSTG-CRYPTO-4: The app does not use cryptographic protocols or algorithms that are widely considered deprecated for security purposes.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    references:
+    - https://owasp.org/Top10/A02_2021-Cryptographic_Failures
+    - https://pub.dev/packages/pointycastle
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: MEDIUM
+    confidence: HIGH
+  pattern-either:
+  # package:pointycastle — Digest factory with algorithm string (MD2/MD4/RIPEMD)
+  - patterns:
+    - pattern: Digest($ALGO)
+    - metavariable-regex:
+        metavariable: $ALGO
+        regex: (?i)^['\"](MD2|MD4|RIPEMD-?128|RIPEMD-?160)['\"]$
+  # package:pointycastle — algorithm-specific class
+  - pattern: MD2Digest()
+  - pattern: MD4Digest()
+  - pattern: RIPEMD128Digest()
+  - pattern: RIPEMD160Digest()

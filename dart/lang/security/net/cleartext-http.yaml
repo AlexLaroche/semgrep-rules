@@ -1,0 +1,70 @@
+rules:
+- id: cleartext-http
+  message: >-
+    Detected an HTTP request to a cleartext URL. Sensitive data sent over
+    plaintext HTTP can be intercepted or modified in transit by network
+    attackers. Use HTTPS so traffic is authenticated and encrypted with
+    TLS, and configure the platform's network security to reject
+    cleartext connections.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-319: Cleartext Transmission of Sensitive Information'
+    masvs:
+    - 'MSTG-NETWORK-1: Data is encrypted on the network using TLS. The secure channel is used consistently throughout the app.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - http
+    references:
+    - https://owasp.org/Top10/A02_2021-Cryptographic_Failures
+    - https://pub.dev/packages/http
+    - https://api.flutter.dev/flutter/dart-io/HttpClient-class.html
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: MEDIUM
+    confidence: HIGH
+  pattern-either:
+  # package:http top-level helpers (or http.Client instance methods)
+  # — http.get/post/put/patch/delete/head/read with Uri.parse('http://...')
+  - patterns:
+    - pattern-either:
+      - pattern: $X.get(Uri.parse($URL), ...)
+      - pattern: $X.post(Uri.parse($URL), ...)
+      - pattern: $X.put(Uri.parse($URL), ...)
+      - pattern: $X.patch(Uri.parse($URL), ...)
+      - pattern: $X.delete(Uri.parse($URL), ...)
+      - pattern: $X.head(Uri.parse($URL), ...)
+      - pattern: $X.read(Uri.parse($URL), ...)
+    - metavariable-regex:
+        metavariable: $URL
+        regex: ^['\"]http://.*
+  # package:http using the Uri.http() factory (always cleartext)
+  - pattern-either:
+    - pattern: $X.get(Uri.http(...), ...)
+    - pattern: $X.post(Uri.http(...), ...)
+    - pattern: $X.put(Uri.http(...), ...)
+    - pattern: $X.patch(Uri.http(...), ...)
+    - pattern: $X.delete(Uri.http(...), ...)
+    - pattern: $X.head(Uri.http(...), ...)
+    - pattern: $X.read(Uri.http(...), ...)
+  # dart:io HttpClient with Uri.parse('http://...') or Uri.http(...)
+  - patterns:
+    - pattern-either:
+      - pattern: $C.getUrl(Uri.parse($URL))
+      - pattern: $C.postUrl(Uri.parse($URL))
+      - pattern: $C.putUrl(Uri.parse($URL))
+      - pattern: $C.patchUrl(Uri.parse($URL))
+      - pattern: $C.deleteUrl(Uri.parse($URL))
+      - pattern: $C.headUrl(Uri.parse($URL))
+      - pattern: $C.openUrl($_, Uri.parse($URL))
+    - metavariable-regex:
+        metavariable: $URL
+        regex: ^['\"]http://.*

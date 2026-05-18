@@ -1,0 +1,36 @@
+rules:
+- id: unencrypted-socket
+  message: >-
+    Detected an unencrypted TCP socket. Data sent over a plain `Socket` or
+    `RawSocket` is transmitted in cleartext and can be observed or
+    modified by network attackers. Use `SecureSocket.connect` or
+    `RawSecureSocket.connect` to wrap the connection in TLS, or layer a
+    higher-level TLS-aware client (e.g. `HttpClient` over HTTPS).
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-319: Cleartext Transmission of Sensitive Information'
+    masvs:
+    - 'MSTG-NETWORK-1: Data is encrypted on the network using TLS. The secure channel is used consistently throughout the app.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    references:
+    - https://api.dart.dev/stable/dart-io/Socket-class.html
+    - https://api.dart.dev/stable/dart-io/SecureSocket-class.html
+    subcategory:
+    - audit
+    likelihood: LOW
+    impact: MEDIUM
+    confidence: MEDIUM
+  pattern-either:
+  - pattern: Socket.connect(...)
+  - pattern: Socket.startConnect(...)
+  - pattern: RawSocket.connect(...)
+  - pattern: RawSocket.startConnect(...)

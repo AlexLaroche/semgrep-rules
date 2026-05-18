@@ -1,0 +1,53 @@
+rules:
+- id: external-storage-write
+  message: >-
+    Detected use of an Android external-storage path API (path_provider's
+    `getExternalStorageDirectory` / `getExternalStorageDirectories` /
+    `getDownloadsDirectory` / `getExternalCacheDirectories`), or a
+    hardcoded `/sdcard/` or `/storage/emulated/` path. Files in
+    external storage are readable by any other app on devices running
+    Android < 10, are included in `adb backup`, and survive app
+    uninstall — do not write tokens, credentials, PII, or any sensitive
+    data there. Use `getApplicationDocumentsDirectory()` for app-private
+    storage, or `flutter_secure_storage` (Keystore/Keychain-backed) for
+    secrets.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A02:2021 - Cryptographic Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-312: Cleartext Storage of Sensitive Information'
+    - 'CWE-922: Insecure Storage of Sensitive Information'
+    masvs:
+    - 'MSTG-STORAGE-2: No sensitive data is stored outside of the app container or system credential storage facilities.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - path_provider
+    - android
+    references:
+    - https://pub.dev/packages/path_provider
+    - https://pub.dev/packages/flutter_secure_storage
+    - https://developer.android.com/training/data-storage
+    subcategory:
+    - audit
+    likelihood: MEDIUM
+    impact: MEDIUM
+    confidence: HIGH
+  pattern-either:
+  # path_provider external storage path APIs
+  - pattern: getExternalStorageDirectory()
+  - pattern: getExternalStorageDirectories(...)
+  - pattern: getDownloadsDirectory()
+  - pattern: getExternalCacheDirectories()
+  # Hardcoded Android external-storage paths in File/Directory
+  - patterns:
+    - pattern-either:
+      - pattern: File($PATH)
+      - pattern: Directory($PATH)
+    - metavariable-regex:
+        metavariable: $PATH
+        regex: ^['"](/sdcard/|/storage/emulated/|/mnt/sdcard/).*['"]$

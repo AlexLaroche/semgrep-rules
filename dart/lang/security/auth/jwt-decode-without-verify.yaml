@@ -1,0 +1,93 @@
+rules:
+- id: jwt-decode-without-verify
+  message: >-
+    Detected `JWT.decode(...)` (or `JwtDecoder.decode(...)`) which only
+    splits and base64-decodes the token without checking the signature.
+    Trusting the resulting claims for authentication or authorization
+    lets any client mint a token by handcrafting the header/payload and
+    appending an arbitrary signature. Use `JWT.verify(token, secret)`
+    (or the equivalent verifier in your library) and supply the same
+    signing key used when the token was issued.
+    JWKS-based flows that decode first to read the `kid` header and
+    then call `JWT.verify(token, key)` on the same token are
+    intentionally not flagged.
+  languages: [dart]
+  severity: ERROR
+  metadata:
+    owasp:
+    - A02:2017 - Broken Authentication
+    - A07:2021 - Identification and Authentication Failures
+    cwe:
+    - 'CWE-345: Insufficient Verification of Data Authenticity'
+    masvs:
+    - 'MSTG-AUTH-3: The remote endpoint uses randomly generated access tokens to authenticate client requests without sending the user''s credentials.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    - jwt
+    - dart_jsonwebtoken
+    - jwt_decoder
+    references:
+    - https://pub.dev/packages/dart_jsonwebtoken
+    - https://pub.dev/packages/jwt_decoder
+    - https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/06-Session_Management_Testing/10-Testing_JSON_Web_Tokens
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: HIGH
+  patterns:
+  - pattern-either:
+    # dart_jsonwebtoken — JWT.decode is the sigless variant; JWT.verify is safe
+    - pattern: JWT.decode($TOKEN)
+    # jwt_decoder — both static methods are signature-less
+    - pattern: JwtDecoder.decode($TOKEN)
+    - pattern: JwtDecoder.tryDecode($TOKEN)
+  # Suppress JWKS-style flows: the enclosing function decodes once to
+  # read the `kid` header, then calls JWT.verify on the SAME raw token.
+  # The decoded payload is never the basis for the trust decision in
+  # that case — the signature check is. Variants cover sync, async,
+  # async*, and sync* function bodies.
+  - pattern-not-inside: |
+      $RT $F(...) {
+        ...
+        JWT.verify($TOKEN, ...);
+        ...
+      }
+  - pattern-not-inside: |
+      $RT $F(...) async {
+        ...
+        JWT.verify($TOKEN, ...);
+        ...
+      }
+  - pattern-not-inside: |
+      $RT $F(...) async* {
+        ...
+        JWT.verify($TOKEN, ...);
+        ...
+      }
+  - pattern-not-inside: |
+      $RT $F(...) sync* {
+        ...
+        JWT.verify($TOKEN, ...);
+        ...
+      }
+  - pattern-not-inside: |
+      $RT $F(...) {
+        ...
+        JWT.tryVerify($TOKEN, ...);
+        ...
+      }
+  - pattern-not-inside: |
+      $RT $F(...) async {
+        ...
+        JWT.tryVerify($TOKEN, ...);
+        ...
+      }
+  # Suppress decode-of-kid-only key selection: the result is consumed
+  # immediately via `.header[...]`, which by construction is a
+  # key-selection step (e.g. reading `kid`, `alg`, `typ`) and has no
+  # trust impact.
+  - pattern-not-inside: JWT.decode($TOKEN).header[...]
+  - pattern-not-inside: JWT.decode($TOKEN).header?[...]

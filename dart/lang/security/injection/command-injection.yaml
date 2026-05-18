@@ -1,0 +1,69 @@
+rules:
+- id: command-injection
+  mode: taint
+  message: >-
+    Detected a `Process.run`/`Process.start` call where untrusted input
+    flows into the executable path, into a shell command (`sh -c`,
+    `bash -c`, `cmd /c`, …), or into an argument when `runInShell: true`.
+    The underlying shell will interpret metacharacters (`;`, `&`, `|`,
+    `$()`, backticks) supplied by the attacker and execute arbitrary
+    commands. Avoid invoking the shell entirely; pass each argument as
+    its own element of the `arguments` list.
+  languages: [dart]
+  severity: WARNING
+  metadata:
+    owasp:
+    - A01:2017 - Injection
+    - A03:2021 - Injection
+    - A03:2025 - Injection
+    cwe:
+    - 'CWE-78: Improper Neutralization of Special Elements used in an OS Command (''OS Command Injection'')'
+    masvs:
+    - 'MSTG-PLATFORM-2: All inputs from external sources and the user are validated and if necessary sanitized.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    references:
+    - https://owasp.org/www-community/attacks/Command_Injection
+    - https://api.dart.dev/stable/dart-io/Process-class.html
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: MEDIUM
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) { ... }
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) async { ... }
+      - pattern-inside: |
+          $RT $F(..., $T $P, ...) async* { ... }
+    - focus-metavariable: $P
+  pattern-sinks:
+  # Tainted executable path
+  - patterns:
+    - pattern-either:
+      - pattern: Process.run($EXE, ...)
+      - pattern: Process.runSync($EXE, ...)
+      - pattern: Process.start($EXE, ...)
+    - focus-metavariable: $EXE
+  # Tainted shell command (sh/bash/cmd/powershell with -c / /c)
+  - patterns:
+    - pattern-either:
+      - pattern: Process.run($SH, [..., $CMD, ...])
+      - pattern: Process.runSync($SH, [..., $CMD, ...])
+      - pattern: Process.start($SH, [..., $CMD, ...])
+    - metavariable-regex:
+        metavariable: $SH
+        regex: ^['\"](/bin/|/usr/bin/)?(sh|bash|zsh|cmd|cmd\.exe|powershell|powershell\.exe)['\"]$
+    - focus-metavariable: $CMD
+  # Tainted argument when runInShell is true
+  - patterns:
+    - pattern-either:
+      - pattern: 'Process.run($_, [..., $ARG, ...], runInShell: true, ...)'
+      - pattern: 'Process.runSync($_, [..., $ARG, ...], runInShell: true, ...)'
+      - pattern: 'Process.start($_, [..., $ARG, ...], runInShell: true, ...)'
+    - focus-metavariable: $ARG

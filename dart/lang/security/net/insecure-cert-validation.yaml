@@ -1,0 +1,48 @@
+rules:
+- id: insecure-cert-validation
+  message: >-
+    `badCertificateCallback` is set to a function that always returns
+    `true`, which disables TLS certificate validation. This makes the
+    client accept any certificate — including self-signed, expired, or
+    attacker-controlled certificates — and exposes the connection to
+    man-in-the-middle attacks. Either remove the override entirely or
+    perform real validation (e.g. pinned-fingerprint comparison).
+  languages: [dart]
+  severity: ERROR
+  metadata:
+    owasp:
+    - A03:2017 - Sensitive Data Exposure
+    - A07:2021 - Identification and Authentication Failures
+    - A04:2025 - Cryptographic Failures
+    cwe:
+    - 'CWE-295: Improper Certificate Validation'
+    masvs:
+    - 'MSTG-NETWORK-3: The app verifies the X.509 certificate of the remote endpoint when the secure channel is established. Only certificates signed by a trusted CA are accepted.'
+    category: security
+    technology:
+    - dart
+    - flutter
+    references:
+    - https://owasp.org/www-community/attacks/Man-in-the-middle_attack
+    - https://api.flutter.dev/flutter/dart-io/HttpClient/badCertificateCallback.html
+    subcategory:
+    - vuln
+    likelihood: MEDIUM
+    impact: HIGH
+    confidence: HIGH
+  pattern-either:
+  # Arrow form: badCertificateCallback = (cert, host, port) => true;
+  - pattern: |
+      $C.badCertificateCallback = ($CERT, $HOST, $PORT) => true;
+  # Block form returning true unconditionally
+  - pattern: |
+      $C.badCertificateCallback = ($CERT, $HOST, $PORT) {
+        return true;
+      };
+  # Constructor-style: HttpClient()..badCertificateCallback = ...
+  - pattern: |
+      ..badCertificateCallback = ($CERT, $HOST, $PORT) => true
+  - pattern: |
+      ..badCertificateCallback = ($CERT, $HOST, $PORT) {
+        return true;
+      }
